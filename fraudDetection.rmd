@@ -1,0 +1,175 @@
+https://www.kaggle.com/datasets/whenamancodes/fraud-detection?resource=download
+```{r}
+data = read.csv("creditcard.csv")
+```
+
+```{r}
+library(dplyr)
+library(randomForest)
+library(caret)
+library(PRROC)
+library(xgboost)
+library(glmnet)
+```
+
+```{r}
+set.seed(01242004)
+trainIndeces = createDataPartition(data$Class, p=0.7, list = FALSE)
+```
+
+Test tuned xgBoost
+```{r}
+xgBoostTuned = readRDS("xgBoostTuned.rds")
+
+prediction = predict(xgBoostTuned, as.matrix(data[-trainIndeces,-31]))
+
+pr <- pr.curve(scores.class0 = prediction, weights.class0 = as.numeric(data[-trainIndeces, "Class"]), curve = T)
+plot(pr, main = "Tuned XGBoost PR Curve")
+roc <- roc.curve(scores.class0 = prediction, weights.class0 = as.numeric(data[-trainIndeces, "Class"]), curve = T)
+plot(roc)
+
+print("Actual as rows - Predicted as columns")
+print("Prediction greater than 10%")
+table(ifelse(data[-trainIndeces, "Class"] == 1, "Fraud", "Legitimate"), ifelse(prediction >= 0.1, "Fraud", "Legitimate"))
+print("Prediction greater than 30%")
+table(ifelse(data[-trainIndeces, "Class"] == 1, "Fraud", "Legitimate"), ifelse(prediction >= 0.3, "Fraud", "Legitimate"))
+print("Prediction greater than 50%")
+table(ifelse(data[-trainIndeces, "Class"] == 1, "Fraud", "Legitimate"), ifelse(prediction >= 0.5, "Fraud", "Legitimate"))
+```
+
+Test untuned xgBoost
+```{r}
+xgBoostUntuned = readRDS("xgBoostUntuned.rds")
+
+prediction = predict(xgBoostUntuned, as.matrix(data[-trainIndeces,-31]))
+
+pr <- pr.curve(scores.class0 = prediction, weights.class0 = as.numeric(data[-trainIndeces, "Class"]), curve = T)
+plot(pr, main = "Untuned XGBoost PR Curve")
+roc <- roc.curve(scores.class0 = prediction, weights.class0 = as.numeric(data[-trainIndeces, "Class"]), curve = T)
+plot(roc)
+
+predicted = ifelse(prediction >= 0.3, 1, 0)
+table(as.numeric(data[-trainIndeces, "Class"]), predicted)
+```
+
+Test random forest
+```{r}
+RFModel = readRDS("RandomForest.rds")
+
+prediction = predict(RFModel, as.matrix(data[-trainIndeces,-31]), type = "prob")
+
+pr <- pr.curve(scores.class0 = prediction[,2], weights.class0 = as.numeric(data[-trainIndeces, "Class"]), curve = T)
+plot(pr, main = "Random Forest PR Curve")
+roc <- roc.curve(scores.class0 = prediction[,2], weights.class0 = as.numeric(data[-trainIndeces, "Class"]), curve = T)
+plot(roc)
+library(ROCR)
+predict = ROCR::prediction(prediction[,2], data[-trainIndeces, "Class"])
+perf = performance(predict, "prec", "rec")
+plot(perf, colorize = T)
+RFModel$confusion
+
+predicted = ifelse(prediction[,2] >= 0.3, 1, 0)
+table(as.numeric(data[-trainIndeces, "Class"]), predicted)
+```
+
+Test GLM
+```{r}
+glm = readRDS("glm.rds")
+
+prediction = predict(glm, as.matrix(data[-trainIndeces,-31]), type = "response", s = 0.005)
+
+pr <- pr.curve(scores.class0 = prediction, weights.class0 = as.numeric(data[-trainIndeces, "Class"]), curve = T)
+plot(pr, main = "GLM PR Curve")
+roc <- roc.curve(scores.class0 = prediction, weights.class0 = as.numeric(data[-trainIndeces, "Class"]), curve = T)
+plot(roc)
+
+predicted = ifelse(prediction >= 0.3, 1, 0)
+table(as.numeric(data[-trainIndeces, "Class"]), predicted)
+```
+
+Train random forest
+```{r}
+gc()
+RFModel = randomForest(Class ~ ., data = data, subset = trainIndeces)
+saveRDS(rfModel, "RandomForest.rds")
+```
+
+Train non-tuned xgboost
+```{r}
+xgBoostUntuned = xgboost(data = as.matrix(data[trainIndeces, -31]), label = as.matrix(data[trainIndeces, "Class"]), nrounds = 100, eta = 0.1, verbose = 1,objective = "binary:logistic", lambda = 0.2, alpha = 0.1, gamma = 1)
+saveRDS(xgBoostUntuned, "xgBoostUntuned.rds")
+```
+
+Train tuned xgboost
+```{r}
+xgbMatrix = xgb.DMatrix(data = as.matrix(data[trainIndeces,-31]), label = data[trainIndeces, 31])
+# Set initial parameters
+params <- list(
+  objective = "binary:logistic",
+  eval_metric = "aucpr"
+)
+
+# Perform cross-validation
+cv_results <- xgb.cv(
+  params = params,
+  data = xgbMatrix,
+  nfold = 5,
+  nrounds = 100,
+  early_stopping_rounds = 10,
+  verbose = TRUE
+)
+# Extract the Best Number of Rounds
+best_nrounds <- cv_results$best_iteration
+# Grid search for hyperparameter tuning
+search_grid <- expand.grid(gamma = 2^(-3:5))
+
+best_aucpr <- 0
+best_params <- list()
+
+for (i in 1:9) {
+  print(i)
+  params <- list(
+    objective = "binary:logistic",
+    eval_metric = "aucpr",
+    eta = 0.1,
+    lambda = 0.1,
+    alpha = 0.3,
+    gamma = search_grid$gamma[i],
+    colsample_bytree = 0.9
+  )
+  
+  cv_results <- xgb.cv(
+    params = params,
+    data = xgbMatrix,
+    nfold = 5,
+    nrounds = 100,
+    early_stopping_rounds = 10,
+    verbose = TRUE
+  )
+  
+  mean_aucpr <- max(cv_results$evaluation_log$test_aucpr_mean)
+  
+  if (mean_aucpr > best_aucpr) {
+    best_aucpr <- mean_aucpr
+    best_params <- params
+    best_nrounds <- cv_results$best_iteration
+  }
+}
+# Train the final model with the best parameters
+xgBoostTuned <- xgb.train(
+  params = best_params,
+  data = xgbMatrix,
+  nrounds = best_nrounds
+)
+
+saveRDS(xgBoostTuned, "xgBoostTuned.rds")
+```
+
+Train GLM
+```{r}
+#data = data %>% mutate(Class = factor(Class))
+
+glm = glmnet(x = as.matrix(data[trainIndeces,-31]), y = data[trainIndeces, 31], family = "binomial", type.measure = "class", alpha = 0)
+
+saveRDS(glm, "glm.rds")
+```
