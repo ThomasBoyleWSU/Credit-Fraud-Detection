@@ -1,3 +1,8 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
 https://www.kaggle.com/datasets/whenamancodes/fraud-detection?resource=download
 ```{r}
 data = read.csv("creditcard.csv")
@@ -10,46 +15,12 @@ library(caret)
 library(PRROC)
 library(xgboost)
 library(glmnet)
+library(knitr)
 ```
 
 ```{r}
 set.seed(01242004)
 trainIndeces = createDataPartition(data$Class, p=0.7, list = FALSE)
-```
-
-Test tuned xgBoost
-```{r}
-xgBoostTuned = readRDS("xgBoostTuned.rds")
-
-prediction = predict(xgBoostTuned, as.matrix(data[-trainIndeces,-31]))
-
-pr <- pr.curve(scores.class0 = prediction, weights.class0 = as.numeric(data[-trainIndeces, "Class"]), curve = T)
-plot(pr, main = "Tuned XGBoost PR Curve")
-roc <- roc.curve(scores.class0 = prediction, weights.class0 = as.numeric(data[-trainIndeces, "Class"]), curve = T)
-plot(roc)
-
-print("Actual as rows - Predicted as columns")
-print("Prediction greater than 10%")
-table(ifelse(data[-trainIndeces, "Class"] == 1, "Fraud", "Legitimate"), ifelse(prediction >= 0.1, "Fraud", "Legitimate"))
-print("Prediction greater than 30%")
-table(ifelse(data[-trainIndeces, "Class"] == 1, "Fraud", "Legitimate"), ifelse(prediction >= 0.3, "Fraud", "Legitimate"))
-print("Prediction greater than 50%")
-table(ifelse(data[-trainIndeces, "Class"] == 1, "Fraud", "Legitimate"), ifelse(prediction >= 0.5, "Fraud", "Legitimate"))
-```
-
-Test untuned xgBoost
-```{r}
-xgBoostUntuned = readRDS("xgBoostUntuned.rds")
-
-prediction = predict(xgBoostUntuned, as.matrix(data[-trainIndeces,-31]))
-
-pr <- pr.curve(scores.class0 = prediction, weights.class0 = as.numeric(data[-trainIndeces, "Class"]), curve = T)
-plot(pr, main = "Untuned XGBoost PR Curve")
-roc <- roc.curve(scores.class0 = prediction, weights.class0 = as.numeric(data[-trainIndeces, "Class"]), curve = T)
-plot(roc)
-
-predicted = ifelse(prediction >= 0.3, 1, 0)
-table(as.numeric(data[-trainIndeces, "Class"]), predicted)
 ```
 
 Test random forest
@@ -58,9 +29,9 @@ RFModel = readRDS("RandomForest.rds")
 
 prediction = predict(RFModel, as.matrix(data[-trainIndeces,-31]), type = "prob")
 
-pr <- pr.curve(scores.class0 = prediction[,2], weights.class0 = as.numeric(data[-trainIndeces, "Class"]), curve = T)
+pr <- pr.curve(scores.class0 = prediction[,2], weights.class0 = data[-trainIndeces, "Class"], curve = T)
 plot(pr, main = "Random Forest PR Curve")
-roc <- roc.curve(scores.class0 = prediction[,2], weights.class0 = as.numeric(data[-trainIndeces, "Class"]), curve = T)
+roc <- roc.curve(scores.class0 = prediction[,2], weights.class0 = data[-trainIndeces, "Class"], curve = T)
 plot(roc)
 library(ROCR)
 predict = ROCR::prediction(prediction[,2], data[-trainIndeces, "Class"])
@@ -68,9 +39,48 @@ perf = performance(predict, "prec", "rec")
 plot(perf, colorize = T)
 RFModel$confusion
 
-predicted = ifelse(prediction[,2] >= 0.3, 1, 0)
-table(as.numeric(data[-trainIndeces, "Class"]), predicted)
+print("Actual as rows - Predicted as columns")
+print("Prediction greater than 10%")
+table(ifelse(data[-trainIndeces, "Class"] == 1, "Fraud", "Legitimate"), ifelse(prediction[,2] >= 0.1, "Fraud", "Legitimate"))
+print("Prediction greater than 30%")
+table(ifelse(data[-trainIndeces, "Class"] == 1, "Fraud", "Legitimate"), ifelse(prediction[,2] >= 0.3, "Fraud", "Legitimate"))
+print("Prediction greater than 50%")
+table(ifelse(data[-trainIndeces, "Class"] == 1, "Fraud", "Legitimate"), ifelse(prediction[,2] >= 0.5, "Fraud", "Legitimate"))
 ```
+
+Test untuned xgBoost
+```{r}
+xgBoostUntuned = readRDS("xgBoostUntuned.rds")
+
+prediction = predict(xgBoostUntuned, as.matrix(data[-trainIndeces,-31]))
+
+pr <- pr.curve(scores.class0 = prediction, weights.class0 = data[-trainIndeces, "Class"], curve = T)
+plot(pr, main = "Untuned XGBoost PR Curve")
+roc <- roc.curve(scores.class0 = prediction, weights.class0 = data[-trainIndeces, "Class"], curve = T)
+plot(roc)
+
+predicted = ifelse(prediction >= 0.3, 1, 0)
+table(data[-trainIndeces, "Class"], predicted)
+```
+
+Test tuned xgBoost
+```{r}
+xgBoostTuned = readRDS("xgBoostTuned.rds")
+
+prediction = predict(xgBoostTuned, as.matrix(data[-trainIndeces,-31]))
+
+pr <- pr.curve(scores.class0 = prediction, weights.class0 = data[-trainIndeces, "Class"], curve = T)
+plot(pr, main = "Tuned XGBoost PR Curve")
+roc <- roc.curve(scores.class0 = prediction, weights.class0 = data[-trainIndeces, "Class"], curve = T)
+plot(roc)
+
+predicted = ifelse(prediction >= 0.3, 1, 0)
+table(data[-trainIndeces, "Class"], predicted)
+```
+
+
+
+
 
 Test GLM
 ```{r}
@@ -78,20 +88,25 @@ glm = readRDS("glm.rds")
 
 prediction = predict(glm, as.matrix(data[-trainIndeces,-31]), type = "response", s = 0.005)
 
-pr <- pr.curve(scores.class0 = prediction, weights.class0 = as.numeric(data[-trainIndeces, "Class"]), curve = T)
+pr <- pr.curve(scores.class0 = prediction, weights.class0 = data[-trainIndeces, "Class"], curve = T)
 plot(pr, main = "GLM PR Curve")
-roc <- roc.curve(scores.class0 = prediction, weights.class0 = as.numeric(data[-trainIndeces, "Class"]), curve = T)
+roc <- roc.curve(scores.class0 = prediction, weights.class0 = data[-trainIndeces, "Class"], curve = T)
 plot(roc)
 
 predicted = ifelse(prediction >= 0.3, 1, 0)
-table(as.numeric(data[-trainIndeces, "Class"]), predicted)
+table(data[-trainIndeces, "Class"], predicted)
 ```
+Stop writing to pdf
+```{r, stop-here, include=FALSE}
+knit_exit()
+```
+
 
 Train random forest
 ```{r}
 gc()
 RFModel = randomForest(Class ~ ., data = data, subset = trainIndeces)
-saveRDS(rfModel, "RandomForest.rds")
+saveRDS(RFModel, "RandomForest.rds")
 ```
 
 Train non-tuned xgboost
