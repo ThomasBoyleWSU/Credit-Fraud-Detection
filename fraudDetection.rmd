@@ -25,7 +25,7 @@ trainIndeces = createDataPartition(data$Class, p=0.7, list = FALSE)
 
 Test random forest
 ```{r}
-RFModel = readRDS("randomForest.rds")
+RFModel = readRDS("Models/randomForest.rds")
 
 prediction = predict(RFModel, as.matrix(data[-trainIndeces,-31]), type = "prob")
 
@@ -50,7 +50,7 @@ table(ifelse(data[-trainIndeces, "Class"] == 1, "Fraud", "Legitimate"), ifelse(p
 
 Test untuned xgBoost
 ```{r}
-xgBoostUntuned = readRDS("xgBoostUntuned.rds")
+xgBoostUntuned = readRDS("Models/xgBoostUntuned.rds")
 
 prediction = predict(xgBoostUntuned, as.matrix(data[-trainIndeces,-31]))
 
@@ -65,7 +65,7 @@ table(data[-trainIndeces, "Class"], predicted)
 
 Test tuned xgBoost
 ```{r}
-xgBoostTuned = readRDS("xgBoostTuned.rds")
+xgBoostTuned = readRDS("Models/xgBoostTuned.rds")
 
 prediction = predict(xgBoostTuned, as.matrix(data[-trainIndeces,-31]))
 
@@ -84,7 +84,7 @@ table(data[-trainIndeces, "Class"], predicted)
 
 Test GLM
 ```{r}
-glm = readRDS("glm.rds")
+glm = readRDS("Models/glm.rds")
 
 prediction = predict(glm, as.matrix(data[-trainIndeces,-31]), type = "response", s = 0.005)
 
@@ -106,13 +106,13 @@ Train random forest
 ```{r}
 gc()
 RFModel = randomForest(Class ~ ., data = data, subset = trainIndeces)
-saveRDS(RFModel, "randomForest.rds")
+saveRDS(RFModel, "Models/randomForest.rds")
 ```
 
 Train non-tuned xgboost
 ```{r}
 xgBoostUntuned = xgboost(data = as.matrix(data[trainIndeces, -31]), label = as.matrix(data[trainIndeces, "Class"]), nrounds = 100, eta = 0.1, verbose = 1,objective = "binary:logistic", lambda = 0.2, alpha = 0.1, gamma = 1)
-saveRDS(xgBoostUntuned, "xgBoostUntuned.rds")
+saveRDS(xgBoostUntuned, "Models/xgBoostUntuned.rds")
 ```
 
 Train tuned xgboost
@@ -177,7 +177,7 @@ xgBoostTuned <- xgb.train(
   nrounds = best_nrounds
 )
 
-saveRDS(xgBoostTuned, "xgBoostTuned.rds")
+saveRDS(xgBoostTuned, "Models/xgBoostTuned.rds")
 ```
 
 Train GLM
@@ -186,5 +186,5 @@ Train GLM
 
 glm = glmnet(x = as.matrix(data[trainIndeces,-31]), y = data[trainIndeces, 31], family = "binomial", type.measure = "class", alpha = 0)
 
-saveRDS(glm, "glm.rds")
+saveRDS(glm, "Models/glm.rds")
 ```
