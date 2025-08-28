@@ -34,11 +34,12 @@ IDE: RStudio
 Key Libraries:
 
 * dplyr: Data transformation
-* caret: For model training, tuning, and validation
-* PRROC: for calculating AUCPR metric and graphical representation
-* randomForest: For the random forest model
-* xgboost: For the XGBoost model
-* glmnet: For the GLM model
+* caret: Partitioning data for training
+* PRROC: Calculating AUCPR metric and graphical representation
+* randomForest: Building the random forest model
+* xgboost: Building the XGBoost model
+* glmnet: Building the GLM model
+* kniter: Creating an html file
 
 # Results
 The primary metric for model evaluation was Area Under the Precision-Recall Curve (AUCPR) due to the extreme class imbalance in the data.
@@ -48,6 +49,4 @@ The primary metric for model evaluation was Area Under the Precision-Recall Curv
 |XGBoost (Untuned)| 0.8588341 | Gradient Boosting|
 |XGBoost (Tuned)| 0.8615031 | Gradient Boosting, Grid Search, Cross-Validation|
 |Random Forest| 0.9860211 | Bagging, Decision Trees|
-|GLM (Binomial)| 0.747024 | Linear Model|
-
-# How to Run
+|GLM (Binomial)| 0.747024 | Linear Modeling|
