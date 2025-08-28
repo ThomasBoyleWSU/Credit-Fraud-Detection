@@ -25,7 +25,7 @@ trainIndeces = createDataPartition(data$Class, p=0.7, list = FALSE)
 
 Test random forest
 ```{r}
-RFModel = readRDS("RandomForest.rds")
+RFModel = readRDS("randomForest.rds")
 
 prediction = predict(RFModel, as.matrix(data[-trainIndeces,-31]), type = "prob")
 
@@ -106,7 +106,7 @@ Train random forest
 ```{r}
 gc()
 RFModel = randomForest(Class ~ ., data = data, subset = trainIndeces)
-saveRDS(RFModel, "RandomForest.rds")
+saveRDS(RFModel, "randomForest.rds")
 ```
 
 Train non-tuned xgboost
