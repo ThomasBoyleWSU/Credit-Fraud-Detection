@@ -1,7 +1,7 @@
 ---
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 ---
 https://www.kaggle.com/datasets/whenamancodes/fraud-detection?resource=download
 ```{r}
@@ -73,10 +73,6 @@ predicted = ifelse(prediction >= 0.3, 1, 0)
 table(data[-trainIndeces, "Class"], predicted)
 ```
 
-
-
-
-
 Test GLM
 ```{r}
 glm = readRDS("Models/glm.rds")
@@ -91,6 +87,8 @@ plot(roc)
 predicted = ifelse(prediction >= 0.3, 1, 0)
 table(data[-trainIndeces, "Class"], predicted)
 ```
+
+
 Stop writing to pdf
 ```{r, stop-here, include=FALSE}
 knit_exit()
@@ -100,7 +98,7 @@ knit_exit()
 Train random forest
 ```{r}
 gc()
-RFModel = randomForest(Class ~ ., data = data, subset = trainIndeces)
+RFModel = randomForest(Class ~ ., data = mutate(data, Class = as.factor(Class)), subset = trainIndeces, do.trace = 10)
 saveRDS(RFModel, "Models/randomForest.rds")
 ```
 
