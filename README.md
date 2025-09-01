@@ -46,7 +46,7 @@ The primary metric for model evaluation was Area Under the Precision-Recall Curv
 
 |Model|Score|Key Characteristics| 
 |---|:---:|---|
-|Random Forest| 0.9860211 | Bagging, Decision Trees|
+|Random Forest| 0.8631476 | Bagging, Decision Trees|
 |XGBoost (Untuned)| 0.8588341 | Gradient Boosting|
 |XGBoost (Tuned)| 0.8615031 | Gradient Boosting, Grid Search, Cross-Validation|
 |GLM (Binomial)| 0.747024 | Linear Modeling|
