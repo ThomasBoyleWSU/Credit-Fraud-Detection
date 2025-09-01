@@ -4,7 +4,7 @@ A machine learning project developed in R to detect fraudulent credit card trans
 # Project Overview
 Credit card fraud detection is a classic imbalanced classification problem, where the number of fraudulent transactions is vastly outnumbered by legitimate ones. This project practices model building on a real-world dataset.
 
-Key Result: The random forest model achieved an AUCPR score of 0.986, significantly outperforming other models and providing a highly effective solution for identifying fraud.
+Key Result: The random forest model achieved an AUCPR score of 0.863, outperforming other models and providing an effective solution for identifying fraud.
 
 # Dataset
 This project uses the Credit Card Fraud Detection dataset from Kaggle.
